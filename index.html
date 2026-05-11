@@ -16,7 +16,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 0;
         }
         #viewer canvas {
             width: 100%;
@@ -24,53 +23,61 @@
             height: auto;
             display: block;
         }
-        #loading {
+        #status {
             color: #fff;
             text-align: center;
             padding: 60px 20px;
-            font-size: 16px;
+            font-size: 15px;
+            line-height: 1.5;
         }
     </style>
 </head>
 <body>
-    <div id="loading">Chargement du menu...</div>
+    <div id="status">Chargement du menu...</div>
     <div id="viewer"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.min.js"></script>
     <script>
         document.title = "AF & PIZZERIA";
         setInterval(function() {
             if (document.title !== "AF & PIZZERIA") document.title = "AF & PIZZERIA";
         }, 500);
 
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+        var statusEl = document.getElementById('status');
+        var viewer = document.getElementById('viewer');
 
-        async function renderPDF() {
-            const loadingEl = document.getElementById('loading');
-            const viewer = document.getElementById('viewer');
-            try {
-                const pdf = await pdfjsLib.getDocument('menu.pdf').promise;
-                loadingEl.style.display = 'none';
-                const screenWidth = Math.min(window.innerWidth, 1200);
-                const dpr = window.devicePixelRatio || 1;
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const baseViewport = page.getViewport({ scale: 1 });
-                    const scale = (screenWidth / baseViewport.width) * dpr;
-                    const viewport = page.getViewport({ scale: scale });
-                    const canvas = document.createElement('canvas');
-                    canvas.width = viewport.width;
-                    canvas.height = viewport.height;
-                    viewer.appendChild(canvas);
-                    await page.render({
-                        canvasContext: canvas.getContext('2d'),
-                        viewport: viewport
-                    }).promise;
+        if (typeof pdfjsLib === 'undefined') {
+            statusEl.innerHTML = 'Erreur: librairie PDF non chargée.<br>Vérifie ta connexion.';
+        } else {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/legacy/build/pdf.worker.min.js';
+
+            pdfjsLib.getDocument('menu.pdf').promise.then(function(pdf) {
+                statusEl.style.display = 'none';
+                var screenWidth = Math.min(window.innerWidth, 1200);
+                var dpr = window.devicePixelRatio || 1;
+
+                function renderPage(pageNum) {
+                    if (pageNum > pdf.numPages) return;
+                    pdf.getPage(pageNum).then(function(page) {
+                        var baseViewport = page.getViewport({ scale: 1 });
+                        var scale = (screenWidth / baseViewport.width) * dpr;
+                        var viewport = page.getViewport({ scale: scale });
+                        var canvas = document.createElement('canvas');
+                        canvas.width = viewport.width;
+                        canvas.height = viewport.height;
+                        viewer.appendChild(canvas);
+                        page.render({
+                            canvasContext: canvas.getContext('2d'),
+                            viewport: viewport
+                        }).promise.then(function() {
+                            renderPage(pageNum + 1);
+                        });
+                    });
                 }
-            } catch (err) {
-                loadingEl.textContent = 'Erreur : ' + err.message;
-            }
+                renderPage(1);
+            }).catch(function(err) {
+                statusEl.innerHTML = 'Erreur: ' + err.message;
+            });
         }
-        renderPDF();
     </script>
 </body>
 </html>

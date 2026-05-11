@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AF & PIZZERIA — Menu</title>
+    <title>AF & PIZZERIA</title>
     <style>
         html, body {
             margin: 0;
@@ -21,6 +21,14 @@
     </style>
 </head>
 <body>
-    <iframe src="menu.pdf"></iframe>
+    <iframe src="menu.pdf" title="AF & PIZZERIA"></iframe>
+    <script>
+        document.title = "AF & PIZZERIA";
+        setInterval(function() {
+            if (document.title !== "AF & PIZZERIA") {
+                document.title = "AF & PIZZERIA";
+            }
+        }, 500);
+    </script>
 </body>
 </html>
